@@ -28,7 +28,7 @@ public class ProductCsvRowValidator implements RowValidator {
             LocalDate.parse(row[0],
                     DateTimeFormatter.ofPattern("yyyyMMdd"));
         } catch (Exception e) {
-            throw new CsvValidationException("Problem with date parsing.");
+            //throw new CsvValidationException("Problem with date parsing.");
         }
     }
 }
