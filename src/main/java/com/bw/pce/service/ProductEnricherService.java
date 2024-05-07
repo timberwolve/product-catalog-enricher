@@ -48,10 +48,6 @@ public class ProductEnricherService {
                       .withSeparator(',')
                       .build();
 
-              CsvToBean<InputTradeProduct> csvToBean;
-
-              csvToBean.
-
               beanToCsv.write(enrichProductList(data));
               streamWriter.flush();
               return stream.getInputStream();
@@ -68,14 +64,16 @@ public class ProductEnricherService {
        try {
            var productList = new ArrayList<Product>();
            final var csvReader = new CSVReaderBuilder(new StringReader(data))
-                   .withRowValidator(new ProductCsvRowValidator()).withSkipLines(1)
+                   .withRowValidator(new ProductCsvRowValidator())
                    .build();
+           final var mappingStrategy = new HeaderColumnNameMappingStrategyBuilder<InputTradeProduct>().build();
+           var csvToBean = new CsvToBeanBuilder<InputTradeProduct>(csvReader).withType(InputTradeProduct.class).build();
            final var map = createProductMap();
-           productList.addAll(csvReader.readAll().parallelStream().map(s -> new Product(LocalDate.parse(s[0]), map.get(s[1]),
-                           Currency.getInstance(s[2]), new BigDecimal(s[3])))
+           productList.addAll(csvToBean.stream().parallel().map(tradeProduct -> new Product(tradeProduct.getDate(), map.get(tradeProduct.getProductId()),
+                           tradeProduct.getCurrency(), tradeProduct.getPrice()))
                    .collect(Collectors.toList()));
            return productList;
-       } catch (LoadingProductsDictionaryException | IOException | CsvException e) {
+       } catch (LoadingProductsDictionaryException e) {
            log.error("Problem enriching products {}" + e.getMessage());
            throw new ProductEnrichException("Problem enriching products", e);
        }

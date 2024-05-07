@@ -2,6 +2,7 @@ package com.bw.pce.controller;
 
 import com.bw.pce.exceptions.LoadingProductsDictionaryException;
 import com.bw.pce.exceptions.ProductEnrichException;
+import com.bw.pce.model.InputTradeProductList;
 import com.bw.pce.model.Product;
 import com.bw.pce.service.ProductEnricherService;
 import com.opencsv.CSVWriter;
@@ -9,6 +10,7 @@ import com.opencsv.bean.HeaderColumnNameMappingStrategyBuilder;
 import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.exceptions.CsvException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,17 +37,16 @@ public class ProductEnricherController {
     /**
      * Enriches the provided document with product information and writes the enriched data as a CSV file to the response.
      *
-     * @param document              The document to be enriched.
      * @throws ProductEnrichException if there is a problem with product enrichment.
      */
-    @PostMapping(path = "/v1/enrich")
+    @PostMapping(path = "/v1/enrich", consumes = {"text/csv"}, headers = "Accept=text/csv")
     @ResponseBody
-    public ResponseEntity<Mono<InputStreamResource>> enrich(@RequestBody String data) throws ProductEnrichException, LoadingProductsDictionaryException {
+    public ResponseEntity<Mono<InputStreamResource>> enrich(@RequestBody String inputTradeProductList, HttpServletRequest httpServletRequest) throws ProductEnrichException, LoadingProductsDictionaryException {
         String fileName = String.format("%s.csv", RandomStringUtils.randomAlphabetic(10));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,  "attachment; filename=" + fileName)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
-                .body(productEnricherService.enrich(data)
+                .body(productEnricherService.enrich("")
                         .flatMap(x -> {
                             InputStreamResource resource = new InputStreamResource(x);
                             return Mono.just(resource);
