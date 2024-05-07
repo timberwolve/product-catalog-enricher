@@ -3,6 +3,7 @@ package com.bw.pce.service;
 import com.bw.pce.exceptions.LoadingProductsDictionaryException;
 import com.bw.pce.exceptions.ProductEnrichException;
 import com.bw.pce.model.InputTradeProduct;
+import com.bw.pce.model.InputTradeProductList;
 import com.bw.pce.model.Product;
 import com.bw.pce.utils.ByteArrayInOutStream;
 import com.bw.pce.validator.ProductCsvRowValidator;
@@ -32,7 +33,7 @@ public class ProductEnricherService {
 
    private static final Logger log = LoggerFactory.getLogger(ProductEnricherService.class);
 
-   public Mono<ByteArrayInputStream> enrich(String data) {
+   public Mono<ByteArrayInputStream> enrich(InputTradeProductList inputTradeProductList) {
 
       return Mono.fromCallable(() -> {
           try {
@@ -48,7 +49,7 @@ public class ProductEnricherService {
                       .withSeparator(',')
                       .build();
 
-              beanToCsv.write(enrichProductList(data));
+              beanToCsv.write(enrichProductList(inputTradeProductList));
               streamWriter.flush();
               return stream.getInputStream();
           }
@@ -60,16 +61,11 @@ public class ProductEnricherService {
       }).subscribeOn(Schedulers.boundedElastic());
    }
 
-   private List<Product> enrichProductList(String data) throws ProductEnrichException{
+   private List<Product> enrichProductList(InputTradeProductList inputTradeProductList) throws ProductEnrichException{
        try {
            var productList = new ArrayList<Product>();
-           final var csvReader = new CSVReaderBuilder(new StringReader(data))
-                   .withRowValidator(new ProductCsvRowValidator())
-                   .build();
-           final var mappingStrategy = new HeaderColumnNameMappingStrategyBuilder<InputTradeProduct>().build();
-           var csvToBean = new CsvToBeanBuilder<InputTradeProduct>(csvReader).withType(InputTradeProduct.class).build();
-           final var map = createProductMap();
-           productList.addAll(csvToBean.stream().parallel().map(tradeProduct -> new Product(tradeProduct.getDate(), map.get(tradeProduct.getProductId()),
+           var map = createProductMap();
+           productList.addAll(inputTradeProductList.getList().stream().parallel().map(tradeProduct -> new Product(tradeProduct.getDate(), map.get(tradeProduct.getProductId()),
                            tradeProduct.getCurrency(), tradeProduct.getPrice()))
                    .collect(Collectors.toList()));
            return productList;

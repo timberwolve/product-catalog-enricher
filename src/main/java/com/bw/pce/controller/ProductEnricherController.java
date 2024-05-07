@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController()
-@RequestMapping("/api")
+@RequestMapping("api/v1")
 public class ProductEnricherController {
 
     @Autowired
@@ -39,14 +39,14 @@ public class ProductEnricherController {
      *
      * @throws ProductEnrichException if there is a problem with product enrichment.
      */
-    @PostMapping(path = "/v1/enrich", consumes = {"text/csv"}, headers = "Accept=text/csv")
+    @PostMapping(path = "/enrich",consumes = {"text/csv"})
     @ResponseBody
-    public ResponseEntity<Mono<InputStreamResource>> enrich(@RequestBody String inputTradeProductList, HttpServletRequest httpServletRequest) throws ProductEnrichException, LoadingProductsDictionaryException {
+    public ResponseEntity<Mono<InputStreamResource>> enrich(@RequestBody InputTradeProductList inputTradeProductList) throws ProductEnrichException, LoadingProductsDictionaryException {
         String fileName = String.format("%s.csv", RandomStringUtils.randomAlphabetic(10));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,  "attachment; filename=" + fileName)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
-                .body(productEnricherService.enrich("")
+                .body(productEnricherService.enrich(inputTradeProductList)
                         .flatMap(x -> {
                             InputStreamResource resource = new InputStreamResource(x);
                             return Mono.just(resource);
